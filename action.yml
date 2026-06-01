@@ -1,0 +1,33 @@
+name: 'Validate Style'
+description: 'Lint markdown and PR bodies for a set of personal writing-style rules: em-dashes, misused "per", prayer-hands emoji, "click here" link text, a forbidden incident prefix, and agentic passive voice.'
+author: 'zkoppert'
+branding:
+  icon: 'check-circle'
+  color: 'green'
+
+inputs:
+  files:
+    description: 'Space-separated list of files to lint. If empty, defaults to changed *.md files in the PR.'
+    required: false
+    default: ''
+  lint-pr-body:
+    description: 'Also lint the PR body when running on a pull_request event (true/false).'
+    required: false
+    default: 'true'
+  fail-on-violation:
+    description: 'Fail the workflow when violations are found (true/false).'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Run validate-style
+      shell: bash
+      env:
+        INPUT_FILES: ${{ inputs.files }}
+        INPUT_LINT_PR_BODY: ${{ inputs.lint-pr-body }}
+        INPUT_FAIL_ON_VIOLATION: ${{ inputs.fail-on-violation }}
+        PR_BODY: ${{ github.event.pull_request.body }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: bash "${ACTION_PATH}/bin/validate-style-action.sh"

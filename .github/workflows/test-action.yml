@@ -1,0 +1,45 @@
+name: test-action
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Smoke test - clean files (should pass)
+        uses: ./
+        with:
+          files: README.md
+
+      - name: Smoke test - violation file (should fail)
+        id: violation
+        continue-on-error: true
+        uses: ./
+        with:
+          files: .github/fixtures/has-violation.md
+          lint-pr-body: 'false'
+
+      - name: Confirm violation case failed
+        if: steps.violation.outcome != 'failure'
+        run: |
+          echo "::error::Expected violation step to fail, got ${{ steps.violation.outcome }}"
+          exit 1
+
+      - name: Smoke test - violation with fail-on-violation=false (should warn but pass)
+        uses: ./
+        with:
+          files: .github/fixtures/has-violation.md
+          lint-pr-body: 'false'
+          fail-on-violation: 'false'
