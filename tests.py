@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 import unittest
+import unittest.mock
 from contextlib import redirect_stdout
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -48,10 +49,6 @@ class TestEmDash(unittest.TestCase):
         violations = find_violations("The runner-up used a well-known trick.")
         self.assertNotIn("no-em-dash", rules_in(violations))
         self.assertNotIn("no-spaced-dash", rules_in(violations))
-
-    def test_en_dash_is_not_flagged(self):
-        violations = find_violations("Page 5\u20137 covers it.")
-        self.assertNotIn("no-em-dash", rules_in(violations))
 
 
 class TestSpacedDash(unittest.TestCase):
@@ -117,6 +114,10 @@ class TestSpacedDash(unittest.TestCase):
     def test_prose_inside_list_item_flagged(self):
         violations = find_violations("1. First - then second")
         self.assertIn("no-spaced-dash", rules_in(violations))
+
+    def test_en_dash_is_not_flagged(self):
+        violations = find_violations("Page 5\u20137 covers it.")
+        self.assertNotIn("no-em-dash", rules_in(violations))
 
 
 class TestPerAsAccordingTo(unittest.TestCase):
@@ -260,6 +261,120 @@ class TestAgenticPassive(unittest.TestCase):
     def test_first_person_not_flagged(self):
         violations = find_violations("I made an error in the writeup.")
         self.assertNotIn("no-agentic-passive", rules_in(violations))
+
+
+class TestThisPrSubject(unittest.TestCase):
+    def test_this_pr_at_line_start_flagged(self):
+        violations = find_violations("This PR adds retry logic to the handler.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_this_change_at_line_start_flagged(self):
+        violations = find_violations("This change introduces a new flag.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_this_commit_at_line_start_flagged(self):
+        violations = find_violations("This commit fixes the off-by-one.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_this_pull_request_flagged(self):
+        violations = find_violations("This pull request closes #42.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_this_mr_flagged(self):
+        violations = find_violations("This MR introduces the helper.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_this_pr_after_period_flagged(self):
+        # Sentence-initial mid-paragraph is also a violation.
+        violations = find_violations("Closes #1. This PR also updates the docs.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_this_pr_case_insensitive(self):
+        violations = find_violations("this pr adds X.")
+        self.assertIn("no-this-pr-subject", rules_in(violations))
+
+    def test_mid_sentence_this_pr_not_flagged(self):
+        # "merging this PR" is the object of a verb, not the subject.
+        violations = find_violations("After merging this PR, run the deploy script.")
+        self.assertNotIn("no-this-pr-subject", rules_in(violations))
+
+    def test_first_person_pr_phrasing_not_flagged(self):
+        violations = find_violations("I opened this PR to fix the bug.")
+        self.assertNotIn("no-this-pr-subject", rules_in(violations))
+
+    def test_inside_inline_code_not_flagged(self):
+        # PR templates and docs sometimes show the bad pattern as an example.
+        violations = find_violations("Avoid `This PR adds X` - use first person.")
+        self.assertNotIn("no-this-pr-subject", rules_in(violations))
+
+
+class TestSubjectlessActionBullet(unittest.TestCase):
+    def test_added_bullet_flagged(self):
+        violations = find_violations("- Added one new post under _posts/.")
+        self.assertIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_inspected_bullet_flagged(self):
+        violations = find_violations("- Inspected the rendered HTML.")
+        self.assertIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_ran_bullet_flagged(self):
+        violations = find_violations("- Ran `validate-style` on the draft.")
+        self.assertIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_asterisk_bullet_flagged(self):
+        violations = find_violations("* Removed the deprecated flag.")
+        self.assertIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_numbered_bullet_flagged(self):
+        violations = find_violations("1. Updated the frontmatter image block.")
+        self.assertIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_indented_bullet_flagged(self):
+        violations = find_violations("  - Renamed the helper to make the intent clearer.")
+        self.assertIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_first_person_bullet_not_flagged(self):
+        violations = find_violations("- I added one new post under _posts/.")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_we_bullet_not_flagged(self):
+        violations = find_violations("- We added retry logic to the handler.")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_imperative_bullet_not_flagged(self):
+        # Setup steps and TODO items legitimately use bare imperatives ("Add X").
+        violations = find_violations("- Add the API key to your `.env` file.")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_run_imperative_bullet_not_flagged(self):
+        violations = find_violations("- Run `make test` before pushing.")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_prose_paragraph_starting_with_verb_not_flagged(self):
+        # By design we only flag bullets - prose has too many false positives
+        # ("Updated tests confirm the fix").
+        violations = find_violations("Updated tests confirm the fix landed.")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_non_action_word_bullet_not_flagged(self):
+        violations = find_violations("- Notes on the rollout below.")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_lowercase_verb_bullet_not_flagged(self):
+        # Lowercase ("added X") is usually a continuation of a previous bullet
+        # or wrapped line - not a fresh action report. Skip to avoid noise.
+        violations = find_violations("- added one new post")
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
+
+    def test_inside_fenced_block_not_flagged(self):
+        text = (
+            "Example of a bad bullet:\n"
+            "```\n"
+            "- Added retry logic\n"
+            "```\n"
+        )
+        violations = find_violations(text)
+        self.assertNotIn("no-subjectless-action-bullet", rules_in(violations))
 
 
 class TestLineAndColumn(unittest.TestCase):
@@ -432,6 +547,89 @@ class TestCodeRegionMasking(unittest.TestCase):
         violations = find_violations(prefix + "\n")
         self.assertEqual(len(violations), 1)
         self.assertEqual(violations[0].column, prefix.index("\u2014") + 1)
+
+
+class TestPrivateRepoRef(unittest.TestCase):
+    """Tests for the no-private-repo-ref rule (--check-visibility)."""
+
+    def _find_with_mock_visibility(self, text, visibility_map):
+        """Run _find_private_repo_refs with a mocked visibility checker."""
+        with unittest.mock.patch(
+            "lint._check_repo_visibility",
+            side_effect=lambda repo: visibility_map.get(repo),
+        ):
+            from lint import _find_private_repo_refs, mask_code_regions
+            return _find_private_repo_refs(mask_code_regions(text))
+
+    def test_github_url_private_repo_flagged(self):
+        text = "See https://github.com/acme/secret-repo/pull/123 for details."
+        violations = self._find_with_mock_visibility(text, {"acme/secret-repo": "private"})
+        self.assertEqual(len(violations), 1)
+        self.assertEqual(violations[0].rule, "no-private-repo-ref")
+        self.assertIn("acme/secret-repo", violations[0].text)
+
+    def test_github_url_public_repo_not_flagged(self):
+        text = "See https://github.com/actions/checkout for the action."
+        violations = self._find_with_mock_visibility(text, {"actions/checkout": "public"})
+        self.assertEqual(len(violations), 0)
+
+    def test_shorthand_private_repo_flagged(self):
+        text = "Fixed in acme/internal-service#42."
+        violations = self._find_with_mock_visibility(text, {"acme/internal-service": "private"})
+        self.assertEqual(len(violations), 1)
+        self.assertIn("acme/internal-service#42", violations[0].text)
+
+    def test_shorthand_public_repo_not_flagged(self):
+        text = "Related to actions/checkout#99."
+        violations = self._find_with_mock_visibility(text, {"actions/checkout": "public"})
+        self.assertEqual(len(violations), 0)
+
+    def test_internal_visibility_flagged(self):
+        text = "Documented in https://github.com/corp/wiki-repo/issues/5."
+        violations = self._find_with_mock_visibility(text, {"corp/wiki-repo": "internal"})
+        self.assertEqual(len(violations), 1)
+        self.assertIn("internal", violations[0].message)
+
+    def test_bare_word_slash_word_not_matched(self):
+        """Bare prose like 'input/output' should not trigger API calls."""
+        text = "The input/output ratio was fine. Also client/server architecture."
+        with unittest.mock.patch("lint._check_repo_visibility") as mock_check:
+            from lint import _find_private_repo_refs, mask_code_regions
+            _find_private_repo_refs(mask_code_regions(text))
+            mock_check.assert_not_called()
+
+    def test_exclusion_skips_file_paths(self):
+        """Paths like src/main, bin/utils should be excluded."""
+        text = "Check https://github.com/src/main for the source."
+        with unittest.mock.patch("lint._check_repo_visibility") as mock_check:
+            from lint import _find_private_repo_refs, mask_code_regions
+            _find_private_repo_refs(mask_code_regions(text))
+            mock_check.assert_not_called()
+
+    def test_deduplication(self):
+        """Same repo referenced twice should only check visibility once."""
+        text = "See acme/repo#1 and acme/repo#2."
+        with unittest.mock.patch(
+            "lint._check_repo_visibility", return_value="private"
+        ) as mock_check:
+            from lint import _find_private_repo_refs, mask_code_regions
+            violations = _find_private_repo_refs(mask_code_regions(text))
+            mock_check.assert_called_once_with("acme/repo")
+            self.assertEqual(len(violations), 1)
+
+    def test_code_block_refs_not_checked(self):
+        """Repo refs inside code blocks should be masked and not checked."""
+        text = "```\ngithub/secret#123\n```"
+        with unittest.mock.patch("lint._check_repo_visibility") as mock_check:
+            from lint import _find_private_repo_refs, mask_code_regions
+            _find_private_repo_refs(mask_code_regions(text))
+            mock_check.assert_not_called()
+
+    def test_api_failure_does_not_flag(self):
+        """If the API returns None (error/timeout), do not flag."""
+        text = "See https://github.com/unknown/repo/pull/1."
+        violations = self._find_with_mock_visibility(text, {"unknown/repo": None})
+        self.assertEqual(len(violations), 0)
 
 
 if __name__ == "__main__":
