@@ -2,7 +2,8 @@
 
 A reusable GitHub Action that lints markdown content and pull request bodies for the following writing-style violations:
 
-- Em-dashes (`—`) - use a hyphen with spaces ( - ) or rephrase
+- Em-dashes (`—`): rephrase using a comma, period, parentheses, or restructure (don't substitute a spaced hyphen)
+- A hyphen or en-dash used as sentence punctuation (spaced on both sides, e.g. `drift - they came in`); word-joining hyphens like `runner-up` are fine
 - The word `per` used to mean "according to" or "based on"
 - Prayer/folded-hands emoji used as thanks or please
 - The literal phrase `click here` as link text
@@ -69,7 +70,7 @@ The action prints each violation in the standard `path:line:column` format that 
 ```text
 ✗ README.md: 2 violation(s)
   [no-em-dash] line 3:14  '—'
-    Em-dash (—) is forbidden in writing on Zack's behalf. Use a regular hyphen with spaces ( - ) or rephrase.
+    Em-dash (—) is forbidden. Rephrase using a comma, period, parentheses, or restructure the sentence. Do not substitute a spaced hyphen, which is also flagged.
 ```
 
 Exit codes:
@@ -97,7 +98,7 @@ make test
 ## Development
 
 ```bash
-make lint   # run the linter against itself
+make lint   # lint README.md, action.yml, and the entrypoint script
 make test   # run unittest suite
 make clean
 ```
