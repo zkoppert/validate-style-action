@@ -1,5 +1,5 @@
 name: 'Validate Style'
-description: 'Lint markdown and PR bodies for a set of personal writing-style rules: em-dashes, misused "per", prayer-hands emoji, "click here" link text, a forbidden incident prefix, and agentic passive voice.'
+description: 'Lint markdown and PR bodies for a set of writing-style rules: em-dashes, spaced dashes, misused "per", non-descriptive link text, agentic passive voice, and more.'
 author: 'zkoppert'
 branding:
   icon: 'check-circle'

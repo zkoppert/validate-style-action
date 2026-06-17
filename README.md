@@ -9,8 +9,13 @@ A reusable GitHub Action that lints markdown content and pull request bodies for
 - The literal phrase `click here` as link text
 - The prefix `ISP incident`
 - Agentic passive voice (a model name as the subject of `made`, `wrote`, `generated`, etc.)
+- `This PR` / `This change` / `This commit` as a sentence subject instead of first person
+- Bullets that lead with a bare past-tense action verb (`Added X`) instead of first person (`I added X`)
+- References to a private or internal GitHub repo in text headed for a public surface (opt-in, behind `--check-visibility`; checks visibility through the `gh` CLI)
 
 The linter masks fenced code blocks and inline `code` spans before scanning, so docs and instructions can legitimately quote literal rule examples without false positives.
+
+The private-repo check is opt-in. It runs only when `lint.py` is called with `--check-visibility`, which the Action does not pass, so it never makes `gh` API calls in CI. The rule ships in `lint.py` to keep this copy byte-identical to the canonical dotfiles source.
 
 ## Why
 
@@ -105,7 +110,7 @@ make clean
 
 ## Related
 
-This action is the canonical home for `lint.py` and `tests.py`. The same script is mirrored as a Copilot CLI skill in [`zkoppert/dotfiles`](https://github.com/zkoppert/dotfiles) under `.copilot/skills/validate-style/`, where it is invoked locally on draft text before posting. When this repo updates the linter, copy the new `lint.py` and `tests.py` into dotfiles to keep both in sync.
+The canonical source for `lint.py` and `tests.py` is the `validate-style` Copilot CLI skill in [`zkoppert/dotfiles`](https://github.com/zkoppert/dotfiles) under `.copilot/skills/validate-style/`, where it is invoked locally on draft text before posting. This repo vendors a copy so the linter can run as an Action. A `drift-check` workflow fetches the dotfiles copy on every push and pull request and fails if the two diverge. To change the linter, update the dotfiles copy first, then sync `lint.py` and `tests.py` into this repo.
 
 ## License
 

@@ -1,0 +1,39 @@
+name: drift-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  drift-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Compare lint.py and tests.py against the canonical dotfiles copy
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/zkoppert/dotfiles/main/.copilot/skills/validate-style"
+          status=0
+          for f in lint.py tests.py; do
+            if ! curl -fsSL "$base/$f" -o "/tmp/canonical-$f"; then
+              echo "::error file=$f::Could not fetch the canonical $f from zkoppert/dotfiles main. Treating as a drift-check failure."
+              status=1
+              continue
+            fi
+            if ! diff -u "/tmp/canonical-$f" "$f"; then
+              echo "::error file=$f::$f has drifted from the canonical copy at zkoppert/dotfiles .copilot/skills/validate-style/$f. Update the dotfiles copy first, then sync it here."
+              status=1
+            fi
+          done
+          if [ "$status" -eq 0 ]; then
+            echo "lint.py and tests.py match the canonical dotfiles copy."
+          fi
+          exit "$status"
