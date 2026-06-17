@@ -25,6 +25,7 @@ The PR body is passed through `env:` in `action.yml`, never inline-expanded into
 The linter checks for:
 
 - em-dashes
+- a hyphen or en-dash used as sentence punctuation (spaced on both sides); word-joining hyphens like `runner-up` are fine
 - the word `per` used to mean "according to" or "based on"
 - prayer/folded-hands emoji as thanks/please
 - `click here` as link text

@@ -98,7 +98,7 @@ make test
 ## Development
 
 ```bash
-make lint   # run the linter against itself
+make lint   # lint README.md, action.yml, and the entrypoint script
 make test   # run unittest suite
 make clean
 ```
