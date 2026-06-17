@@ -1,14 +1,15 @@
 # Copilot instructions for validate-style-action
 
-This repo is the canonical home for the writing-style linter (`lint.py`) and its tests (`tests.py`). The same files are mirrored in `zkoppert/dotfiles` under `.copilot/skills/validate-style/`.
+The canonical source for the writing-style linter (`lint.py`) and its tests (`tests.py`) is the `validate-style` Copilot CLI skill in `zkoppert/dotfiles` under `.copilot/skills/validate-style/`. This repo vendors a copy so the linter can run as a GitHub Action.
 
 ## When making changes here
 
-1. Update `lint.py` and/or `tests.py` in this repo first - this is the source of truth.
-2. Run `make lint test` and confirm everything passes.
-3. Run `make test` to verify the unit suite.
-4. After merging, copy the updated `lint.py` and `tests.py` into the dotfiles skill directory so local CLI invocations stay in sync.
-5. Cut a new release tag (`vX.Y.Z`) so downstream `.github/workflows/` consumers can pin to it.
+1. Change `lint.py` and/or `tests.py` in the dotfiles skill first; that is the source of truth.
+2. Copy the updated `lint.py` and `tests.py` into this repo so the two stay byte-identical.
+3. Run `make lint` and `make test` and confirm everything passes.
+4. Cut a new release tag (`vX.Y.Z`) and re-point the `v1` alias so downstream `.github/workflows/` consumers pick it up.
+
+The `drift-check` workflow fetches the dotfiles copy on every push and pull request and fails if `lint.py` or `tests.py` here diverge from it, so the two cannot silently drift apart.
 
 ## Action structure
 
@@ -31,5 +32,8 @@ The linter checks for:
 - `click here` as link text
 - `ISP incident` prefix
 - agentic passive voice (model names as the subject of `made`, `wrote`, `generated`, etc.)
+- `This PR` / `This change` / `This commit` as a sentence subject instead of first person
+- bullets that lead with a bare past-tense action verb (`Added X`) instead of first person (`I added X`)
+- references to a private or internal GitHub repo in public-bound text (opt-in, behind `--check-visibility`; not run by the Action in CI)
 
 Code fences and inline `code` spans are masked before scanning so docs that quote rule examples don't trip the linter.
