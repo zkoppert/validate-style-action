@@ -1,7 +1,7 @@
 .PHONY: lint test clean
 
 lint:
-	python3 lint.py lint.py README.md action.yml bin/validate-style-action.sh
+	python3 lint.py README.md action.yml bin/validate-style-action.sh
 
 test:
 	python3 tests.py
